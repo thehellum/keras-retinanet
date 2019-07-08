@@ -6,13 +6,12 @@ by Tsung-Yi Lin, Priya Goyal, Ross Girshick, Kaiming He and Piotr Dollár.
 ## Installation
 
 1) Clone this repository.
-2) Ensure numpy is installed using `pip install numpy --user`
-3) In the repository, execute `pip install . --user`.
-   Note that due to inconsistencies with how `tensorflow` should be installed,
-   this package does not define a dependency on `tensorflow` as it will try to install that (which at least on Arch Linux results in an incorrect installation).
-   Please make sure `tensorflow` is installed as per your systems requirements.
-4) Alternatively, you can run the code directly from the cloned  repository, however you need to run `python setup.py build_ext --inplace` to compile Cython code first.
-5) Optionally, install `pycocotools` if you want to train / test on the MS COCO dataset by running `pip install --user git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI`.
+2) Change directory (`cd keras-retinanet`) and make SW_setup.sh executable (`sudo chmod +x SW_setup.sh`).
+3) Run `./SW_setup.sh` in order to install necessary dependencies (notice that these will be installed in the virtual environment).
+4) Change directory back to home and activate virtual environment (`source ./venv/bin/activate`).
+5) The pretrained MS COCO model can be downloaded [here](https://github.com/fizyr/keras-retinanet/releases). Place it in the snapshots directory.
+6) With the venv enabled, you can now test the detector accordingly: `python3 detector.py path/to/image/or/video`.
+7) Optionally, install `pycocotools` if you want to train / test on the MS COCO dataset by running `pip install --user git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI`.
 
 ## Testing
 An example of testing the network can be seen in [this Notebook](https://github.com/delftrobotics/keras-retinanet/blob/master/examples/ResNet50RetinaNet.ipynb).
