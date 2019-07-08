@@ -3,7 +3,7 @@
 Keras implementation of RetinaNet object detection as described in [Focal Loss for Dense Object Detection](https://arxiv.org/abs/1708.02002)
 by Tsung-Yi Lin, Priya Goyal, Ross Girshick, Kaiming He and Piotr Dollár.
 
-## Installation
+## Installation and testing
 
 1) Clone this repository.
 2) Change directory (`cd keras-retinanet`) and make SW_setup.sh executable (`sudo chmod +x SW_setup.sh`).
@@ -49,6 +49,8 @@ Most scripts (like `retinanet-evaluate`) also support converting on the fly, usi
 Note that the train script uses relative imports since it is inside the `keras_retinanet` package.
 If you want to adjust the script for your own use outside of this repository,
 you will need to switch it to use absolute imports.
+An example of usage (from the keras-retinanet directory) is: `keras_retinanet/bin/train.py --weights snapshots/ResNet-50-model.keras.h5 csv keras-retinanet/images/data/labels.csv keras-retinanet/images/data/class_id.csv` 
+These CSV files can be generated from XML files using [this script](https://github.com/thehellum/keras-retinanet/blob/master/keras_retinanet/preprocessing/xml_to_csv.py) as described [here](https://github.com/thehellum/keras-retinanet#xml-to-csv).
 
 If you installed `keras-retinanet` correctly, the train script will be installed as `retinanet-train`.
 However, if you make local modifications to the `keras-retinanet` repository, you should run the script directly from the repository.
@@ -187,6 +189,13 @@ This defines a dataset with 3 images.
 `img_001.jpg` contains a cow.
 `img_002.jpg` contains a cat and a bird.
 `img_003.jpg` contains no interesting objects/animals.
+
+
+## XML to CSV
+
+USAGE: python3 keras_retinanet/preprocessing/xml_to_csv.py /path/to/xml --outputDirectory /path/to/place/csv
+
+Notice that --outputDirectory is an optional argument. If no output directory is specified, then a directory at is created at inputDirectory/../data
 
 
 ### Class mapping format
