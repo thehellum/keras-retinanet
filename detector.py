@@ -44,7 +44,7 @@ def get_session():
 def load_retinanet():
     # Adjust this to point to your downloaded/trained model
     # Models can be downloaded here: https://github.com/fizyr/keras-retinanet/releases
-    model_path = os.path.join('snapshots', 'resnet50_coco_inference_v2.1.0.h5')
+    model_path = os.path.join('snapshots', 'resnet50_coco_best_v2.1.0.h5')
 
     # Load retinanet model
     model = models.load_model(model_path, backbone_name='resnet50')
