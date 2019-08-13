@@ -63,54 +63,77 @@ class XmlDictConfig(dict):
                 self.update({element.tag: element.text})
 
 
-# def write_to_csv(data_dirs):
-#     index = 0
-#     df = pd.DataFrame(columns=['path', 'xmin', 'ymin', 'xmax', 'ymax', 'class'])
-#     for dictionary in data_dirs:
-#         for file_name in os.listdir(sys.path[0] + dictionary):
-#             if '.xml' in file_name:
-#                 tree = ElementTree.parse(sys.path[0] + dictionary + '\\' + file_name)
-#                 root = tree.getroot()
-#                 xmldict = XmlDictConfig(root)
-#                 df.loc[index] = [xmldict['path']] + [xmldict['object']['bndbox']['xmin']] + [xmldict['object']['bndbox']['ymin']] + [xmldict['object']['bndbox']['xmax']] + [xmldict['object']['bndbox']['ymax']] + [xmldict['object']['name']]
-#                 index += 1
-#     print(df)
-#     df.to_csv(path_or_buf=sys.path[0] + '\\test.csv', header=False, index=False, index_label=False)
-
-
 def write_all_to_csv(inputDirectory, outputDirectory, label_file_name='dnv_dataset.csv', class_file_name='class_id.csv'):
-    index = 0
+    index_val, index_train = 0,0
     classes = []
-    df = pd.DataFrame(columns=['path', 'xmin', 'ymin', 'xmax', 'ymax', 'class']) # Data frame
-
+    df_train = pd.DataFrame(columns=['path', 'xmin', 'ymin', 'xmax', 'ymax', 'class']) # Data frame
+    df_val = pd.DataFrame(columns=['path', 'xmin', 'ymin', 'xmax', 'ymax', 'class'])
     for path, dirnames, filenames in os.walk(inputDirectory):
         for name in filenames:
-            if '.xml' in name and (name[:-4] + '.jpg') in filenames:
+            # if ('.xml' in name and (name[:-4] + '.jpg') in filenames) or ('.xml' in name and (name[:-4] + '.jpeg') in filenames) or ('.xml' in name and (name[:-4] + '.png') in filenames):
+            # if '.xml' in name and ( (name[:-4] + '.jpg') or (name[:-4] + '.jpeg') or (name[:-4] + '.png') ) in filenames:
+            if '.xml' in name:
+                if name[:-4] + '.jpg' in filenames:
+                    image_name = name[:-4] + '.jpg'
+                elif name[:-4] + '.jpeg' in filenames:
+                    image_name = name[:-4] + '.jpeg'
+                elif name[:-4] + '.png' in filenames:
+                    image_name = name[:-4] + '.png'
+                else:
+                    continue
+
                 tree = ElementTree.parse(os.path.join(path, name))
                 root = tree.getroot()
                 xmldict = XmlDictConfig(root)
                 try:
+                    split_prob = np.random.uniform(low=0,high=1)
                     if type(xmldict['object']) == type([]):
                         for elem in xmldict['object']:
-                            df.loc[index] =  [os.path.join(path, (name[:-4] + '.jpg')),
-                                             elem['bndbox']['xmin'],
-                                             elem['bndbox']['ymin'],
-                                             elem['bndbox']['xmax'],
-                                             elem['bndbox']['ymax'],
-                                             elem['name']]
-                            index += 1
-                            if not any(elem['name'] in i for i in classes):
-                                classes.append((elem['name'], len(classes)))
+                            if elem['name'] == 'motor_vessel':
+                                label_name = 'semi_open_pleasure_craft'
+                            else:
+                                label_name = elem['name']
+                            if split_prob <= 0.8:
+                                df_train.loc[index_train] =  [os.path.join(path, image_name),
+                                                 elem['bndbox']['xmin'],
+                                                 elem['bndbox']['ymin'],
+                                                 elem['bndbox']['xmax'],
+                                                 elem['bndbox']['ymax'],
+                                                 label_name]
+                                index_train += 1
+                            else:
+                                df_val.loc[index_val] =  [os.path.join(path, image_name),
+                                                 elem['bndbox']['xmin'],
+                                                 elem['bndbox']['ymin'],
+                                                 elem['bndbox']['xmax'],
+                                                 elem['bndbox']['ymax'],
+                                                 label_name]
+                                index_val += 1
+
+                            if not any(label_name in i for i in classes):
+                                classes.append((label_name, len(classes)))
                     else:
-                        df.loc[index] =  [os.path.join(path, (name[:-4] + '.jpg')),
-                                         xmldict['object']['bndbox']['xmin'],
-                                         xmldict['object']['bndbox']['ymin'],
-                                         xmldict['object']['bndbox']['xmax'],
-                                         xmldict['object']['bndbox']['ymax'],
-                                         xmldict['object']['name']]
-                        index += 1
-                        if not any(xmldict['object']['name'] in i for i in classes):
-                            classes.append((xmldict['object']['name'], len(classes)))
+                        if xmldict['object']['name'] == 'motor_vessel':
+                            label_name = 'semi_open_pleasure_craft'
+                        else:
+                            label_name = xmldict['object']['name']
+                        if split_prob <= 0.8:
+                            df_train.loc[index_train] = [os.path.join(os.path.abspath(path), image_name),
+                                             xmldict['object']['bndbox']['xmin'],
+                                             xmldict['object']['bndbox']['ymin'],
+                                             xmldict['object']['bndbox']['xmax'],
+                                             xmldict['object']['bndbox']['ymax'],
+                                             label_name]
+                        else:
+                            df_val.loc[index_val] = [os.path.join(os.path.abspath(path), image_name),
+                                             xmldict['object']['bndbox']['xmin'],
+                                             xmldict['object']['bndbox']['ymin'],
+                                             xmldict['object']['bndbox']['xmax'],
+                                             xmldict['object']['bndbox']['ymax'],
+                                             label_name]
+                            index_val += 1
+                        if not any(label_name in i for i in classes):
+                            classes.append((label_name, len(classes)))
 
                 except KeyError as arg:
                     if arg == 'path':
@@ -118,16 +141,51 @@ def write_all_to_csv(inputDirectory, outputDirectory, label_file_name='dnv_datas
                         df.loc[index] = [xmldict['path'],'','','','','']
                         index += 1
                     else:
-                        print('Invalid xml-format')
+                        print('Error: ',arg)
 
     cdf = pd.DataFrame(data=classes, columns=['class', 'id'])
     # Creates label file
-    df.to_csv(path_or_buf=os.path.join(outputDirectory, label_file_name), header=False, index=False, index_label=False)
-    # Creates class file
-    cdf.to_csv(path_or_buf=os.path.join(outputDirectory, class_file_name), header=False, index=False, index_label=False)
+    df_full = pd.concat([df_train,df_val])
 
-    print(df)
-    print(cdf)
+    df_val.to_csv(path_or_buf=os.path.join(outputDirectory, 'validation.csv'), header=False, index=False, index_label=False)
+    df_train.to_csv(path_or_buf=os.path.join(outputDirectory, 'train.csv'), header=False, index=False, index_label=False)
+    df_full.to_csv(path_or_buf=os.path.join(os.path.abspath(outputDirectory), label_file_name), header=False, index=False, index_label=False)
+    # Creates class file
+    cdf.to_csv(path_or_buf=os.path.join(os.path.abspath(outputDirectory), class_file_name), header=False, index=False, index_label=False)
+    return label_file_name
+
+def train_val_split(split, path_from, path_to, label_file_name='dnv_dataset.csv'):
+    # Load data
+    df = pd.read_csv(filepath_or_buffer=os.path.join(path_from, label_file_name))
+    row_count, _ = df.shape
+    split_index = int(0.8*row_count)
+    while True:
+        if df.iloc[split_index][0] == df.iloc[split_index+1][0]:
+            break
+        else:
+            split_index += 1
+    train_df = df.iloc[:split_index,:]
+    val_df = df.iloc[split_index:,:]
+    train_df.to_csv(os.path.join(path_to, 'train.csv'), header=False, index=False, index_label=False)
+    val_df.to_csv(os.path.join(path_to, 'validation.csv'), header=False, index=False, index_label=False)
+
+
+def filter_by_class(path_to_csv, save_name, class_list):
+    with open(path_to_csv, 'rt') as input, open(save_name, 'wt',  newline='') as output:
+        writer = csv.writer(output)
+        for row in csv.reader(input):
+            if np.intersect1d(row,class_list).size == 1:
+                writer.writerow(row)
+
+                
+def filter_class_id(path_to_csv, save_name, class_list):
+    index = 0
+    with open(path_to_csv, 'rt') as input, open(save_name, 'wt', newline='') as output:
+        writer = csv.writer(output)
+        for class_name, id in csv.reader(input):
+            if class_name in class_list:
+                writer.writerow([class_name, str(index)])
+                index += 1
 
 
 def makedirs(path):
@@ -151,6 +209,18 @@ def create_arg_parser():
                     help='Path to the output directory.')
     return parser
 
+
+def count_number_of_classes(filename):
+    classes = {}
+    with open(filename,'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            key = row[5]
+            if key in classes:
+                classes[key] = classes[key] +1
+            else:
+                classes[key] = 1
+    return classes
 
 
 def main(args=None):
@@ -176,7 +246,7 @@ def main(args=None):
 
     # Create directory at inputDirectory/../data
     else:
-        save_dir = os.path.abspath(os.path.join(parsed_args.inputDirectory, os.pardir, 'data'))
+        save_dir = os.path.abspath(os.path.join(parsed_args.inputDirectory, os.pardir, 'csv'))
         if not os.path.exists(save_dir):
             makedirs(save_dir)
             print("Created directory at: ", save_dir)
@@ -185,8 +255,20 @@ def main(args=None):
 
 
     # Convert xml to csv to spesified path
-    write_all_to_csv(parsed_args.inputDirectory, save_dir)
+    label_file_name = write_all_to_csv(parsed_args.inputDirectory, save_dir)
+    class_count = count_number_of_classes(os.path.join(save_dir, 'dnv_dataset.csv'))
+    class_list = []
+    for key,val in class_count.items():
+        if val > 100:
+            class_list.append(key)
+
+    filter_by_class(path_to_csv=os.path.join(save_dir, 'train.csv'), save_name=os.path.join(save_dir, 'train_filtered.csv'), class_list=class_list)
+    filter_by_class(path_to_csv=os.path.join(save_dir, 'validation.csv'), save_name=os.path.join(save_dir, 'validation_filtered.csv'), class_list=class_list)
+    filter_class_id(path_to_csv=os.path.join(save_dir,'class_id.csv'), save_name=os.path.join(save_dir,'class_id_filtered.csv'), class_list=class_list)
 
 
 if __name__ == '__main__':
+
+
+    #filter_class_id(path_to_csv=os.path.join(save_dir,'class_id.csv'), class_list=class_list)
     main()
